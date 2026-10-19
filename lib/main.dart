@@ -15,10 +15,10 @@ const String baseUrl = 'https://dchat-pjz5.onrender.com';
 const String appVersion = '1.0.0';
 const String appBuildNumber = '1';
 const String appAuthor = 'Rohan Singh';
-const String githubRepositoryUrl = 'https://github.com/rohan4784-2804/Dchat';
+const String githubRepositoryUrl = 'https://github.com/rohan4784-2804/dchat-code';
 const String githubReleasesUrl = '$githubRepositoryUrl/releases';
 const String latestReleaseApiUrl =
-    'https://api.github.com/repos/rohan4784-2804/Dchat/releases/latest';
+    'https://api.github.com/repos/rohan4784-2804/dchat-code/releases/latest';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
