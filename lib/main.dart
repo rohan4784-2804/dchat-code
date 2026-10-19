@@ -6,7 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 
 import 'notifications_service.dart';
 
@@ -28,6 +28,129 @@ Future<void> main() async {
 
 class DChatApp extends StatelessWidget {
   const DChatApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'DChat',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: const Color(0xFF101018),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: const Color(0xFF9B93FF),
+          brightness: Brightness.dark,
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          filled: true,
+          fillColor: const Color(0xFF20202C),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(14),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+      home: const DChatHome(),
+    );
+  }
+}
+
+class _AppInfoLine extends StatelessWidget {
+  const _AppInfoLine({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 105,
+            child: Text(label, style: const TextStyle(color: Colors.white60)),
+          ),
+          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
+        ],
+      ),
+    );
+  }
+}
+
+class DChatHome extends StatefulWidget {
+  const DChatHome({super.key});
+
+  @override
+  State<DChatHome> createState() => _DChatHomeState();
+}
+
+class _DChatHomeState extends State<DChatHome> {
+  final usernameController = TextEditingController();
+  final passwordController = TextEditingController();
+  final messageController = TextEditingController();
+  final messageScrollController = ScrollController();
+
+  String? token;
+  String? username;
+  String? selectedUser;
+
+  bool busy = false;
+  bool isRegister = false;
+  bool refreshingUsers = false;
+  bool loadingMessages = false;
+  bool sendingMessage = false;
+  bool socketConnected = false;
+
+  String error = '';
+
+  List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> messages = [];
+
+  io.Socket? socket;
+
+  @override
+  void initState() {
+    super.initState();
+    restoreSession();
+  }
+
+  @override
+  void dispose() {
+    usernameController.dispose();
+    passwordController.dispose();
+    messageController.dispose();
+    messageScrollController.dispose();
+    socket?.disconnect();
+    socket?.dispose();
+    super.dispose();
+  }
+
+  bool sameUser(String a, String b) =>
+      a.trim().toLowerCase() == b.trim().toLowerCase();
+
+  Map<String, dynamic> decodeResponse(http.Response response) {
+    dynamic result;
+
+    try {
+      result = jsonDecode(response.body);
+    } catch (_) {
+      throw Exception(
+        'Invalid server response (HTTP ${response.statusCode}).',
+      );
+    }
+
+    if (result is! Map) {
+      throw Exception('Unexpected response from server.');
+    }
+
+    return Map<String, dynamic>.from(result);
+  }
+
+  String errorText(Object e) =>
+      e.toString().replaceFirst('Exception: ', '');
 
   Future<void> openExternalUrl(String value) async {
     final uri = Uri.tryParse(value);
@@ -258,128 +381,6 @@ class DChatApp extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'DChat',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF101018),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF9B93FF),
-          brightness: Brightness.dark,
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: const Color(0xFF20202C),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(14),
-            borderSide: BorderSide.none,
-          ),
-        ),
-      ),
-      home: const DChatHome(),
-    );
-  }
-}
-
-class _AppInfoLine extends StatelessWidget {
-  const _AppInfoLine({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 105,
-            child: Text(label, style: const TextStyle(color: Colors.white60)),
-          ),
-          Expanded(child: Text(value, style: const TextStyle(fontWeight: FontWeight.w600))),
-        ],
-      ),
-    );
-  }
-}
-
-class DChatHome extends StatefulWidget {
-  const DChatHome({super.key});
-
-  @override
-  State<DChatHome> createState() => _DChatHomeState();
-}
-
-class _DChatHomeState extends State<DChatHome> {
-  final usernameController = TextEditingController();
-  final passwordController = TextEditingController();
-  final messageController = TextEditingController();
-  final messageScrollController = ScrollController();
-
-  String? token;
-  String? username;
-  String? selectedUser;
-
-  bool busy = false;
-  bool isRegister = false;
-  bool refreshingUsers = false;
-  bool loadingMessages = false;
-  bool sendingMessage = false;
-  bool socketConnected = false;
-
-  String error = '';
-
-  List<Map<String, dynamic>> users = [];
-  List<Map<String, dynamic>> messages = [];
-
-  IO.Socket? socket;
-
-  @override
-  void initState() {
-    super.initState();
-    restoreSession();
-  }
-
-  @override
-  void dispose() {
-    usernameController.dispose();
-    passwordController.dispose();
-    messageController.dispose();
-    messageScrollController.dispose();
-    socket?.disconnect();
-    socket?.dispose();
-    super.dispose();
-  }
-
-  bool sameUser(String a, String b) =>
-      a.trim().toLowerCase() == b.trim().toLowerCase();
-
-  Map<String, dynamic> decodeResponse(http.Response response) {
-    dynamic result;
-
-    try {
-      result = jsonDecode(response.body);
-    } catch (_) {
-      throw Exception(
-        'Invalid server response (HTTP ${response.statusCode}).',
-      );
-    }
-
-    if (result is! Map) {
-      throw Exception('Unexpected response from server.');
-    }
-
-    return Map<String, dynamic>.from(result);
-  }
-
-  String errorText(Object e) =>
-      e.toString().replaceFirst('Exception: ', '');
 
   Future<void> restoreSession() async {
     try {
