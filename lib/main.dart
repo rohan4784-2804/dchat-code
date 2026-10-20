@@ -491,9 +491,9 @@ class _DChatHomeState extends State<DChatHome> {
     socket?.disconnect();
     socket?.dispose();
 
-    socket = IO.io(
+    socket = io.io(
       baseUrl,
-      IO.OptionBuilder()
+      io.OptionBuilder()
           .setTransports(['websocket'])
           .setAuth({'token': authToken})
           .disableAutoConnect()
